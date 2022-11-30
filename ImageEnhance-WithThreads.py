@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import textwrap
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageSequence
 
 image_lock = threading.Lock() 
 start_time = 0
@@ -31,23 +31,54 @@ def enhance_thread(sharpness, contrast, brightness, directory, output, secs):
         input_path = os.path.join(directory, og_image)
         image = Image.open(input_path)
         
-        # Brighten up image
-        curr_bri = ImageEnhance.Brightness(image)
-        image = curr_bri.enhance(brightness)
+        if '.gif' in og_image:
+            new = []
+            for frame_num in range(image.n_frames):
+                image.seek(frame_num)
+                
+                frame = Image.new('RGBA', image.size)
+                frame.paste(image)
+                
+                # Brighten up image
+                curr_bri = ImageEnhance.Brightness(frame)
+                frame = curr_bri.enhance(brightness)
+                
+                
+                # Enhance Contrast
+                curr_con = ImageEnhance.Contrast(frame)
+                frame = curr_con.enhance(contrast)
+                
+                
+                # Enhance Sharpness
+                curr_sharp = ImageEnhance.Sharpness(frame)
+                frame = curr_sharp.enhance(sharpness)
+                
+                new.append(frame)
+        
+            # Save image to output path
+            output_path = os.path.join(output, og_image)
+            new[0].save(output_path, append_images=new[1:], save_all=True)
+                
         
         
-        # Enhance Contrast
-        curr_con = ImageEnhance.Contrast(image)
-        image = curr_con.enhance(contrast)
-        
-        
-        # Enhance Sharpness
-        curr_sharp = ImageEnhance.Sharpness(image)
-        image = curr_sharp.enhance(sharpness)
+        else:
+            # Brighten up image
+            curr_bri = ImageEnhance.Brightness(image)
+            image = curr_bri.enhance(brightness)
+            
+            
+            # Enhance Contrast
+            curr_con = ImageEnhance.Contrast(image)
+            image = curr_con.enhance(contrast)
+            
+            
+            # Enhance Sharpness
+            curr_sharp = ImageEnhance.Sharpness(image)
+            image = curr_sharp.enhance(sharpness)
 
-        # Save image to output path
-        output_path = os.path.join(output, og_image)
-        image.save(output_path)
+            # Save image to output path
+            output_path = os.path.join(output, og_image)
+            image.save(output_path)
 
 
 def main():
